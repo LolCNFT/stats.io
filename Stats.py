@@ -7,6 +7,7 @@ from fpdf import FPDF
 import plotly.express as px  # pip install plotly-express
 
 import CheckCol
+from streamlit_card import card
 
 
 def Stats():
@@ -16,6 +17,7 @@ def Stats():
     add = st.sidebar.text_input("", value="", placeholder="Soon!", disabled=True)
     export_as_pdf = st.button("Export Report")
 
+    # card(title="Hello World!", text="Some description", image="http://placekitten.com/200/300")
     @st.cache
     def read_csv(file):
         df = pd.read_csv(file)
@@ -91,6 +93,13 @@ def Stats():
     #         st.write(dataframe)
     #     else:
     #         st.error("No recognizable address")
+    st_style = '''
+                <style>
+                .css-1r6slb0.e1tzin5v2{background-color:#262626;padding:1em;border-radius:10px;}
+                .plot-container{background-color:#262626;}
+                </style>
+    '''
+    st.markdown(st_style, unsafe_allow_html=True)
     if uploaded_file is not None:
         dataframe = read_csv(uploaded_file)
         if dataframe is None:
@@ -218,18 +227,25 @@ def Stats():
 
         else:
             with st.spinner('Loading graphs...'):
+                style_graph = '''
+                .js-plotly-plot{background - color:  # 262626;}
+                '''
+                st.markdown(style_graph, unsafe_allow_html=True)
+
                 st.subheader("General Graphs")
                 # time.sleep(2)
                 sales_by_des = df_selection.groupby(by=["Description"]).sum()["Total per Tx"].abs()
                 fig_by_des = px.pie(
-                    sales_by_des, sales_by_des.index, "Total per Tx", title="<b>Volume by Categories<b>")
+                    sales_by_des, sales_by_des.index, "Total per Tx", title="<b>Volume by Categories<b>",
+                    color_discrete_sequence=px.colors.sequential.Agsunset)
                 full_widht = st.columns(1)
                 fig_by_des.update_traces(textposition='inside', textinfo='percent')
                 with st.container():
                     st.plotly_chart(fig_by_des, use_container_width=True)
                 sales_by_tx = df_selection.groupby(by=["TxType"]).sum()["Total per Tx"].abs()
                 fig_by_tx = px.pie(
-                    sales_by_tx, sales_by_tx.index, "Total per Tx", title="<b>Volume by Tx Type<b>")
+                    sales_by_tx, sales_by_tx.index, "Total per Tx", title="<b>Volume by Tx Type<b>",
+                    color_discrete_sequence=px.colors.sequential.Rainbow)
                 fig_by_tx.update_traces(textposition='inside', textinfo='percent')
                 full_widht = st.columns(1)
                 with st.container():
@@ -257,7 +273,7 @@ def Stats():
                     y="Total per Tx",
                     x=sales_by_month.index,
                     title="<b>Sum of Tx Monthly<b>",
-                    color_discrete_sequence=["#0083B4"] * len(sales_by_month),
+                    color_discrete_sequence=["#34B1FF"] * len(sales_by_month),
                     template="plotly_white"
                 )
                 fig_month_sale.update_layout(
@@ -285,13 +301,13 @@ def Stats():
                     st.plotly_chart(fig_month_sale, use_container_width=True)
                     st.plotly_chart(fig_day_sale, use_container_width=True)
                 # Daily for year
-                sales_by_days = df_selection.groupby(by=["days"]).max()[["Wallet Holdings"]]
+                sales_by_days = df_selection.groupby(by=["days"]).max(numeric_only=True)[["Wallet Holdings"]]
                 fig_days_sales = px.line(
                     sales_by_days,
                     y="Wallet Holdings",
                     x=sales_by_days.index,
                     title="<b>History holdings<b>",
-                    color_discrete_sequence=["#396ab1"] * len(sales_by_days),
+                    color_discrete_sequence=["#8A3FFC"] * len(sales_by_days),
                     template="simple_white"
                 )
                 fig_days_sales.update_layout(
@@ -320,9 +336,9 @@ def Stats():
                     st.plotly_chart(fig_txs, use_container_width=True)
                 st.subheader('Comparative over years')
 
-                #Comparative
+                # Comparative
 
-                #wallet holdings
+                # wallet holdings
                 #
                 # sales_by_days2 = df_selection.groupby(by=['day-month', 'year']).sum()[["Wallet Holdings"]]
                 #
