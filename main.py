@@ -12,10 +12,8 @@ import GetAPI
 import Home
 import Stats
 
+st.set_page_config(page_title="Wallet Flow", page_icon=":bar_chart:", layout="wide")
 with st.spinner('Loading...'):
-
-    st.set_page_config(page_title="Wallet Flow", page_icon=":bar_chart:", layout="wide")
-
     @st.cache
     def get_dataframe(address):
         type = 'addresses'
