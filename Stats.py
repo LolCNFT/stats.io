@@ -7,7 +7,6 @@ from fpdf import FPDF
 import plotly.express as px  # pip install plotly-express
 
 import CheckCol
-from streamlit_card import card
 
 
 def Stats():
@@ -17,7 +16,6 @@ def Stats():
     add = st.sidebar.text_input("", value="", placeholder="Soon!", disabled=True)
     export_as_pdf = st.button("Export Report")
 
-    # card(title="Hello World!", text="Some description", image="http://placekitten.com/200/300")
     @st.cache
     def read_csv(file):
         df = pd.read_csv(file)
