@@ -75,7 +75,7 @@ with st.spinner('Loading...'):
 
     with st.sidebar:
         with tab1:
-            st.header(":house: Home")
+            st.header("🏠 Home")
             Home.Home()
 
         with tab2:
