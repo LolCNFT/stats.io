@@ -133,7 +133,8 @@ def Stats():
                 default=dataframe["TxType"].unique()
             )
             df_selection = dataframe.query(
-                "Note == @note & year == @year & month == @month & day == @day & TxType == @tx & Label == @label")
+                "Note == @note & year == @year & month == @month & day == @day & TxType == @tx & Label == @label & "
+                "Description == @description")
             st.dataframe(df_selection)
             total_in_wallet = float(df_selection["Total per Tx"].sum())
             total_income = int(df_selection["Received Amount"].sum())
