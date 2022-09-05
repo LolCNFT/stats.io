@@ -11,13 +11,94 @@ import CheckCol
 
 def Stats():
     st.markdown('---')
+    genre = st.radio(
+        "What's your wallet?",
+        ('Eternl', 'Daedalus'))
     uploaded_file = st.file_uploader('Upload Universal .csv', type='csv', key=12212)
     st.sidebar.header("Paste your address")
     add = st.sidebar.text_input("", value="", placeholder="Soon!", disabled=True)
     export_as_pdf = st.button("Export Report")
 
+    def create_download_link(val, filename):
+        b64 = base64.b64encode(val)  # val looks like b'...'
+        return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download file</a>'
+
+    if export_as_pdf:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font('Arial', 'B', 16)
+        pdf.cell(40, 10)
+
+        html = create_download_link(pdf.output(dest="S").encode("latin-1"), "test")
+
+        st.markdown(html, unsafe_allow_html=True)
+    st.markdown("---")
+
     @st.cache
-    def read_csv(file):
+    def read_csv_daedalus(file):
+        df = pd.read_csv(file,thousands=',',decimal='.')
+        try:
+            df.rename(columns={'Deposit amount (ADA)': 'Received Amount', "Sent amount (ADA)": "Sent Amount",
+                               "Fee (ADA)": "Fee Amount", 'Date & time': 'Date',
+                               'Type': 'TxType'},inplace=True)
+            df.drop('Status', inplace=True, axis=1)
+            df.drop('Addresses from', inplace=True, axis=1)
+            df.drop('Addresses to', inplace=True, axis=1)
+            df.drop('Withdrawals', inplace=True, axis=1)
+            df.drop('TOTAL (ADA)', inplace=True, axis=1)
+        except Exception:
+            st.warning('kkk')
+        try:
+            df["Received Amount"] = df["Received Amount"].str.replace(',', '.').astype(float)
+            df["Sent Amount"] = df["Sent Amount"].str.replace(',', '.').astype(float)
+            df["Fee Amount"] = df["Fee Amount"].str.replace(',', '.').astype(float)
+        except Exception:
+            pass
+        try:
+            df["Note"] = df["Note"].fillna('No Note')
+            df["Description"] = df["Description"].fillna('No Description')
+            df["Label"] = df["Label"].fillna('No Label')
+        except Exception:
+            df.insert(4, "Note", "None")
+            df.insert(5, "Description", "None")
+            df.insert(5, "Label", "None")
+        try:
+            df["Received Amount"] = df["Received Amount"].fillna(0)
+            df["Sent Amount"] = df["Sent Amount"].fillna(0)
+            df["Fee Amount"] = df["Fee Amount"].fillna(0)
+
+        except Exception:
+            pass
+        try:
+            s = 0
+            for j in df['Tokens (unformatted amounts)']:
+                s+=1
+                if j is not None:
+                    df["TxType"][s] = (df["TxType"][s].astype(str) + ' Tokens')
+            df["TxType"] = df["TxType"].fillna('No TxType')
+        except Exception:
+            pass
+        df["Total per Tx"] = df["Received Amount"] - df["Sent Amount"] - df["Fee Amount"]
+        df["year"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.year
+        df["month"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.month
+        df["day"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.day
+        df['day-month'] = df["day"].astype(str) + '-' + df["month"].astype(str)
+        df['days'] = pd.to_datetime(
+            df["day"].astype(str) + '-' + df["month"].astype(str) + '-' + df["year"].astype(str)).dt.date
+        df.sort_values(by='Date')
+        lst_wallet = []
+        c = 0
+        for f in df['Total per Tx']:
+            c += float(f)
+            lst_wallet.append(c)
+        df['Wallet Holdings'] = pd.Series(lst_wallet)
+        total = []
+        for k in df["Total per Tx"]:
+            total.append(abs(k))
+        df["abs_total"] = pd.Series(total)
+        return df
+
+    def read_csv_eternl(file):
         df = pd.read_csv(file)
 
         if CheckCol.check('Koinly Date', df):
@@ -91,18 +172,16 @@ def Stats():
     #         st.write(dataframe)
     #     else:
     #         st.error("No recognizable address")
-    st_style = '''
-                <style>
-                .css-1r6slb0.e1tzin5v2{background-color:#262626;padding:1em;border-radius:10px;}
-                .plot-container{background-color:#262626;}
-                </style>
-    '''
-    st.markdown(st_style, unsafe_allow_html=True)
     if uploaded_file is not None:
-        dataframe = read_csv(uploaded_file)
+        if genre == 'Eternl':
+            dataframe = read_csv_eternl(uploaded_file)
+        elif genre == 'Daedalus':
+            dataframe = read_csv_daedalus(uploaded_file)
+
         if dataframe is None:
             st.warning('Upload a Universal CSV.')
         else:
+
             st.sidebar.header("Filter here:")
             year = st.sidebar.multiselect(
                 "Select year:",
@@ -139,10 +218,12 @@ def Stats():
                 options=dataframe["TxType"].unique(),
                 default=dataframe["TxType"].unique()
             )
+
             df_selection = dataframe.query(
                 "Note == @note & year == @year & month == @month & day == @day & TxType == @tx & Label == @label & "
                 "Description == @description")
             st.dataframe(df_selection)
+
             total_in_wallet = float(df_selection["Total per Tx"].sum())
             total_income = int(df_selection["Received Amount"].sum())
             total_sent = int(df_selection["Sent Amount"].sum())
@@ -153,20 +234,6 @@ def Stats():
             total_h = float(dataframe["Total per Tx"].sum())
             tx_total = int(dataframe["Date"].size)
 
-    def create_download_link(val, filename):
-        b64 = base64.b64encode(val)  # val looks like b'...'
-        return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download file</a>'
-
-    if export_as_pdf:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font('Arial', 'B', 16)
-        pdf.cell(40, 10)
-
-        html = create_download_link(pdf.output(dest="S").encode("latin-1"), "test")
-
-        st.markdown(html, unsafe_allow_html=True)
-    st.markdown("---")
     try:
         average_total = round(total_abs / tx_total, 2)
         average = round(volume / tx_quantity, 2)
@@ -225,11 +292,6 @@ def Stats():
 
         else:
             with st.spinner('Loading graphs...'):
-                style_graph = '''
-                .js-plotly-plot{background - color:  # 262626;}
-                '''
-                st.markdown(style_graph, unsafe_allow_html=True)
-
                 st.subheader("General Graphs")
                 # time.sleep(2)
                 sales_by_des = df_selection.groupby(by=["Description"]).sum()["Total per Tx"].abs()
