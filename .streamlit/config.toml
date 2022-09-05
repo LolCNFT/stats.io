@@ -6,3 +6,5 @@ backgroundColor='#161616'
 secondaryBackgroundColor="#28426c"
 textColor="#fffff"
 font="sans serif"
+[server]
+enableCORS=false
