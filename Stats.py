@@ -17,7 +17,7 @@ def Stats():
     uploaded_file = st.file_uploader('Upload Universal .csv', type='csv', key=12212)
     st.sidebar.header("Paste your address")
     add = st.sidebar.text_input("", value="", placeholder="Soon!", disabled=True)
-    export_as_pdf = st.button("Export Report")
+    export_as_pdf = st.button("🗄 Export Report")
 
     def create_download_link(val, filename):
         b64 = base64.b64encode(val)  # val looks like b'...'
