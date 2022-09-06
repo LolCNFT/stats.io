@@ -7,6 +7,7 @@ from fpdf import FPDF
 import plotly.express as px  # pip install plotly-express
 
 import CheckCol
+import getdf
 
 
 def Stats():
@@ -33,130 +34,6 @@ def Stats():
 
         st.markdown(html, unsafe_allow_html=True)
     st.markdown("---")
-
-    @st.cache
-    def read_csv_daedalus(file):
-        df = pd.read_csv(file,thousands=',',decimal='.')
-        try:
-            df.rename(columns={'Deposit amount (ADA)': 'Received Amount', "Sent amount (ADA)": "Sent Amount",
-                               "Fee (ADA)": "Fee Amount", 'Date & time': 'Date',
-                               'Type': 'TxType', 'TOTAL (ADA)': 'Total per Tx'},inplace=True)
-            df.drop('Status', inplace=True, axis=1)
-            df.drop('Addresses from', inplace=True, axis=1)
-            df.drop('Addresses to', inplace=True, axis=1)
-            df.drop('Withdrawals', inplace=True, axis=1)
-        except Exception:
-            st.warning('kkk')
-        try:
-            df["Received Amount"] = df["Received Amount"].str.replace(',', '.').astype(float)
-            df["Sent Amount"] = df["Sent Amount"].str.replace(',', '.').astype(float)
-            df["Fee Amount"] = df["Fee Amount"].str.replace(',', '.').astype(float)
-            df["Total per Tx"] = df["Total per Tx"].str.replace(',', '.').astype(float)
-        except Exception:
-            pass
-        try:
-            df["Note"] = df["Note"].fillna('No Note')
-            df["Description"] = df["Description"].fillna('No Description')
-            df["Label"] = df["Label"].fillna('No Label')
-        except Exception:
-            df.insert(4, "Note", "None")
-            df.insert(5, "Description", "None")
-            df.insert(5, "Label", "None")
-        try:
-            df["Received Amount"] = df["Received Amount"].fillna(0)
-            df["Sent Amount"] = df["Sent Amount"].fillna(0)
-            df["Fee Amount"] = df["Fee Amount"].fillna(0)
-            df["Total per Tx"] = df["Total per Tx"].fillna(0)
-
-        except Exception:
-            pass
-        try:
-            s = 0
-            for j in df['Tokens (unformatted amounts)']:
-                s+=1
-                if j is not None:
-                    df["TxType"][s] = (df["TxType"][s].astype(str) + ' Tokens')
-            df["TxType"] = df["TxType"].fillna('No TxType')
-        except Exception:
-            pass
-        df["year"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.year
-        df["month"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.month
-        df["day"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.day
-        df['day-month'] = df["day"].astype(str) + '-' + df["month"].astype(str)
-        df['days'] = pd.to_datetime(
-            df["day"].astype(str) + '-' + df["month"].astype(str) + '-' + df["year"].astype(str)).dt.date
-        df.sort_values(by='Date')
-        lst_wallet = []
-        c = 0
-        for f in df['Total per Tx']:
-            c += float(f)
-            lst_wallet.append(c)
-        df['Wallet Holdings'] = pd.Series(lst_wallet)
-        total = []
-        for k in df["Total per Tx"]:
-            total.append(abs(k))
-        df["abs_total"] = pd.Series(total)
-        return df
-
-    def read_csv_eternl(file):
-        df = pd.read_csv(file)
-
-        if CheckCol.check('Koinly Date', df):
-            return None
-        try:
-            df["Received Amount"] = df["Received Amount"].str.replace(',', '.').astype(float)
-            df["Sent Amount"] = df["Sent Amount"].str.replace(',', '.').astype(float)
-            df["Fee Amount"] = df["Fee Amount"].str.replace(',', '.').astype(float)
-        except Exception:
-            pass
-        lst = []
-        for i in df["Description"]:
-            lst.append(i)
-        ls = []
-        for j in lst:
-            if str(j)[0:6] == 'reward':
-                pal = 'Reward Epochs'
-                ls.append(pal)
-            elif str(j)[0:3] == 'nan':
-                pal = 'No Description'
-                ls.append(pal)
-            elif len(str(j)) > 20:
-                ls.append(str(j)[0:20])
-            else:
-                ls.append(str(j))
-        df["Description"] = pd.Series(ls)
-        try:
-            df["Note"] = df["Note"].fillna('No Note')
-        except Exception:
-            df.insert(4, "Note", "None")
-        try:
-            df["Received Amount"] = df["Received Amount"].fillna(0)
-            df["Sent Amount"] = df["Sent Amount"].fillna(0)
-            df["Fee Amount"] = df["Fee Amount"].fillna(0)
-            df["Label"] = df["Label"].fillna('No Label')
-        except Exception:
-            return st.error('We could not read columns: Received Amount, Sent Amount, Fee Amount, Label')
-        df["TxType"] = df["TxType"].fillna('No TxType')
-        df["Total per Tx"] = df["Received Amount"] - df["Sent Amount"] - df["Fee Amount"]
-        df["year"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.year
-        df["month"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.month
-        df["day"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.day
-        df['day-month'] = df["day"].astype(str) + '-' + df["month"].astype(str)
-        df['days'] = pd.to_datetime(
-            df["day"].astype(str) + '-' + df["month"].astype(str) + '-' + df["year"].astype(str)).dt.date
-        df.sort_values(by='Date')
-        lst_wallet = []
-        c = 0
-        for f in df['Total per Tx']:
-            c += float(f)
-            lst_wallet.append(c)
-        df['Wallet Holdings'] = pd.Series(lst_wallet)
-        total = []
-        for k in df["Total per Tx"]:
-            total.append(abs(k))
-        df["abs_total"] = pd.Series(total)
-        return df
-
     # address = st.sidebar.text_input("", value="", placeholder="add1q...")
     # if address != '':
     #     if address[0:4] == 'addr':
@@ -174,12 +51,12 @@ def Stats():
     #         st.error("No recognizable address")
     if uploaded_file is not None:
         if genre == 'Eternl':
-            dataframe = read_csv_eternl(uploaded_file)
+            dataframe = getdf.getdf_eternl(uploaded_file)
         elif genre == 'Daedalus':
-            dataframe = read_csv_daedalus(uploaded_file)
+            dataframe = getdf.getdf_daedalus(uploaded_file)
 
         if dataframe is None:
-            st.warning('Upload a Universal CSV.')
+            st.warning('Upload a Universal CSV or try another option.')
         else:
 
             st.sidebar.header("Filter here:")
