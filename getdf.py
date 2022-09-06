@@ -115,7 +115,6 @@ def getdf_daedalus(file):
             z += 1
         df['TxType'] = pd.Series(lst_str)
         df.pop('Tokens (unformatted amounts)')
-        df.pop('ID')
     except Exception:
         pass
     df['Date'] = pd.to_datetime(df['Date'], infer_datetime_format=True)

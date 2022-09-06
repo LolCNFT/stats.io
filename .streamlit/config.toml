@@ -3,7 +3,7 @@
 primaryColor = "#924078"
 #backgroundColor="#040717"
 backgroundColor='#161616'
-secondaryBackgroundColor="#28426c"
+secondaryBackgroundColor="#262626"
 textColor="#fffff"
 font="sans serif"
 [server]
