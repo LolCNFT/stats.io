@@ -24,3 +24,4 @@ def info():
     st.write('This histogram shows you how much volume you moved in all the wallet\'s life!')
     st.markdown('---')
     st.header('Comparative over years')
+    st.write('Soon...')
