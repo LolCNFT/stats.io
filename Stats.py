@@ -7,75 +7,33 @@ from fpdf import FPDF
 import plotly.express as px  # pip install plotly-express
 
 import CheckCol
+import getdf
 
 
 def Stats():
     st.markdown('---')
+    genre = st.radio(
+        "What's your wallet?",
+        ('Eternl', 'Daedalus'))
     uploaded_file = st.file_uploader('Upload Universal .csv', type='csv', key=12212)
     st.sidebar.header("Paste your address")
     add = st.sidebar.text_input("", value="", placeholder="Soon!", disabled=True)
-    export_as_pdf = st.button("Export Report")
+    export_as_pdf = st.button("🗄 Export Report")
 
-    @st.cache
-    def read_csv(file):
-        df = pd.read_csv(file)
+    def create_download_link(val, filename):
+        b64 = base64.b64encode(val)  # val looks like b'...'
+        return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download file</a>'
 
-        if CheckCol.check('Koinly Date', df):
-            return None
-        try:
-            df["Received Amount"] = df["Received Amount"].str.replace(',', '.').astype(float)
-            df["Sent Amount"] = df["Sent Amount"].str.replace(',', '.').astype(float)
-            df["Fee Amount"] = df["Fee Amount"].str.replace(',', '.').astype(float)
-        except Exception:
-            pass
-        lst = []
-        for i in df["Description"]:
-            lst.append(i)
-        ls = []
-        for j in lst:
-            if str(j)[0:6] == 'reward':
-                pal = 'Reward Epochs'
-                ls.append(pal)
-            elif str(j)[0:3] == 'nan':
-                pal = 'No Description'
-                ls.append(pal)
-            elif len(str(j)) > 20:
-                ls.append(str(j)[0:20])
-            else:
-                ls.append(str(j))
-        df["Description"] = pd.Series(ls)
-        try:
-            df["Note"] = df["Note"].fillna('No Note')
-        except Exception:
-            df.insert(4, "Note", "None")
-        try:
-            df["Received Amount"] = df["Received Amount"].fillna(0)
-            df["Sent Amount"] = df["Sent Amount"].fillna(0)
-            df["Fee Amount"] = df["Fee Amount"].fillna(0)
-            df["Label"] = df["Label"].fillna('No Label')
-        except Exception:
-            return st.error('We could not read columns: Received Amount, Sent Amount, Fee Amount, Label')
-        df["TxType"] = df["TxType"].fillna('No TxType')
-        df["Total per Tx"] = df["Received Amount"] - df["Sent Amount"] - df["Fee Amount"]
-        df["year"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.year
-        df["month"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.month
-        df["day"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.day
-        df['day-month'] = df["day"].astype(str) + '-' + df["month"].astype(str)
-        df['days'] = pd.to_datetime(
-            df["day"].astype(str) + '-' + df["month"].astype(str) + '-' + df["year"].astype(str)).dt.date
-        df.sort_values(by='Date')
-        lst_wallet = []
-        c = 0
-        for f in df['Total per Tx']:
-            c += float(f)
-            lst_wallet.append(c)
-        df['Wallet Holdings'] = pd.Series(lst_wallet)
-        total = []
-        for k in df["Total per Tx"]:
-            total.append(abs(k))
-        df["abs_total"] = pd.Series(total)
-        return df
+    if export_as_pdf:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font('Arial', 'B', 16)
+        pdf.cell(40, 10)
 
+        html = create_download_link(pdf.output(dest="S").encode("latin-1"), "test")
+
+        st.markdown(html, unsafe_allow_html=True)
+    st.markdown("---")
     # address = st.sidebar.text_input("", value="", placeholder="add1q...")
     # if address != '':
     #     if address[0:4] == 'addr':
@@ -92,10 +50,15 @@ def Stats():
     #     else:
     #         st.error("No recognizable address")
     if uploaded_file is not None:
-        dataframe = read_csv(uploaded_file)
+        if genre == 'Eternl':
+            dataframe = getdf.getdf_eternl(uploaded_file)
+        elif genre == 'Daedalus':
+            dataframe = getdf.getdf_daedalus(uploaded_file)
+
         if dataframe is None:
-            st.warning('Upload a Universal CSV.')
+            st.warning('Upload a Universal CSV or try another option.')
         else:
+
             st.sidebar.header("Filter here:")
             year = st.sidebar.multiselect(
                 "Select year:",
@@ -132,10 +95,12 @@ def Stats():
                 options=dataframe["TxType"].unique(),
                 default=dataframe["TxType"].unique()
             )
+
             df_selection = dataframe.query(
                 "Note == @note & year == @year & month == @month & day == @day & TxType == @tx & Label == @label & "
                 "Description == @description")
             st.dataframe(df_selection)
+
             total_in_wallet = float(df_selection["Total per Tx"].sum())
             total_income = int(df_selection["Received Amount"].sum())
             total_sent = int(df_selection["Sent Amount"].sum())
@@ -146,20 +111,6 @@ def Stats():
             total_h = float(dataframe["Total per Tx"].sum())
             tx_total = int(dataframe["Date"].size)
 
-    def create_download_link(val, filename):
-        b64 = base64.b64encode(val)  # val looks like b'...'
-        return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}.pdf">Download file</a>'
-
-    if export_as_pdf:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font('Arial', 'B', 16)
-        pdf.cell(40, 10)
-
-        html = create_download_link(pdf.output(dest="S").encode("latin-1"), "test")
-
-        st.markdown(html, unsafe_allow_html=True)
-    st.markdown("---")
     try:
         average_total = round(total_abs / tx_total, 2)
         average = round(volume / tx_quantity, 2)
@@ -222,14 +173,16 @@ def Stats():
                 # time.sleep(2)
                 sales_by_des = df_selection.groupby(by=["Description"]).sum()["Total per Tx"].abs()
                 fig_by_des = px.pie(
-                    sales_by_des, sales_by_des.index, "Total per Tx", title="<b>Volume by Categories<b>")
+                    sales_by_des, sales_by_des.index, "Total per Tx", title="<b>Volume by Categories<b>",
+                    color_discrete_sequence=px.colors.sequential.Agsunset)
                 full_widht = st.columns(1)
                 fig_by_des.update_traces(textposition='inside', textinfo='percent')
                 with st.container():
                     st.plotly_chart(fig_by_des, use_container_width=True)
                 sales_by_tx = df_selection.groupby(by=["TxType"]).sum()["Total per Tx"].abs()
                 fig_by_tx = px.pie(
-                    sales_by_tx, sales_by_tx.index, "Total per Tx", title="<b>Volume by Tx Type<b>")
+                    sales_by_tx, sales_by_tx.index, "Total per Tx", title="<b>Volume by Tx Type<b>",
+                    color_discrete_sequence=px.colors.sequential.Rainbow)
                 fig_by_tx.update_traces(textposition='inside', textinfo='percent')
                 full_widht = st.columns(1)
                 with st.container():
@@ -257,7 +210,7 @@ def Stats():
                     y="Total per Tx",
                     x=sales_by_month.index,
                     title="<b>Sum of Tx Monthly<b>",
-                    color_discrete_sequence=["#0083B4"] * len(sales_by_month),
+                    color_discrete_sequence=["#34B1FF"] * len(sales_by_month),
                     template="plotly_white"
                 )
                 fig_month_sale.update_layout(
@@ -285,13 +238,13 @@ def Stats():
                     st.plotly_chart(fig_month_sale, use_container_width=True)
                     st.plotly_chart(fig_day_sale, use_container_width=True)
                 # Daily for year
-                sales_by_days = df_selection.groupby(by=["days"]).max()[["Wallet Holdings"]]
+                sales_by_days = df_selection.groupby(by=["days"]).max(numeric_only=True)[["Wallet Holdings"]]
                 fig_days_sales = px.line(
                     sales_by_days,
                     y="Wallet Holdings",
                     x=sales_by_days.index,
                     title="<b>History holdings<b>",
-                    color_discrete_sequence=["#396ab1"] * len(sales_by_days),
+                    color_discrete_sequence=["#8A3FFC"] * len(sales_by_days),
                     template="simple_white"
                 )
                 fig_days_sales.update_layout(
@@ -320,9 +273,9 @@ def Stats():
                     st.plotly_chart(fig_txs, use_container_width=True)
                 st.subheader('Comparative over years')
 
-                #Comparative
+                # Comparative
 
-                #wallet holdings
+                # wallet holdings
                 #
                 # sales_by_days2 = df_selection.groupby(by=['day-month', 'year']).sum()[["Wallet Holdings"]]
                 #

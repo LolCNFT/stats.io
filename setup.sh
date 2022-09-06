@@ -9,8 +9,8 @@ echo "\
 [theme]
 # Primary color
 primaryColor = '#924078'
-backgroundColor='#000908'
-secondaryBackgroundColor='#28426c'
+backgroundColor='#161616'
+secondaryBackgroundColor='#262626'
 textColor='#fffff'
 font='sans serif'
 [server]\n\
