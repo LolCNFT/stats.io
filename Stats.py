@@ -40,18 +40,18 @@ def Stats():
         try:
             df.rename(columns={'Deposit amount (ADA)': 'Received Amount', "Sent amount (ADA)": "Sent Amount",
                                "Fee (ADA)": "Fee Amount", 'Date & time': 'Date',
-                               'Type': 'TxType'},inplace=True)
+                               'Type': 'TxType', 'TOTAL (ADA)': 'Total per Tx'},inplace=True)
             df.drop('Status', inplace=True, axis=1)
             df.drop('Addresses from', inplace=True, axis=1)
             df.drop('Addresses to', inplace=True, axis=1)
             df.drop('Withdrawals', inplace=True, axis=1)
-            df.drop('TOTAL (ADA)', inplace=True, axis=1)
         except Exception:
             st.warning('kkk')
         try:
             df["Received Amount"] = df["Received Amount"].str.replace(',', '.').astype(float)
             df["Sent Amount"] = df["Sent Amount"].str.replace(',', '.').astype(float)
             df["Fee Amount"] = df["Fee Amount"].str.replace(',', '.').astype(float)
+            df["Total per Tx"] = df["Total per Tx"].str.replace(',', '.').astype(float)
         except Exception:
             pass
         try:
@@ -66,6 +66,7 @@ def Stats():
             df["Received Amount"] = df["Received Amount"].fillna(0)
             df["Sent Amount"] = df["Sent Amount"].fillna(0)
             df["Fee Amount"] = df["Fee Amount"].fillna(0)
+            df["Total per Tx"] = df["Total per Tx"].fillna(0)
 
         except Exception:
             pass
@@ -78,7 +79,6 @@ def Stats():
             df["TxType"] = df["TxType"].fillna('No TxType')
         except Exception:
             pass
-        df["Total per Tx"] = df["Received Amount"] - df["Sent Amount"] - df["Fee Amount"]
         df["year"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.year
         df["month"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.month
         df["day"] = pd.to_datetime(df["Date"], infer_datetime_format=True).dt.day
