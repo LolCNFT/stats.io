@@ -3,6 +3,9 @@ import streamlit as st
 
 def info():
     st.markdown('---')
+    st.title('NO info is kept or stored!')
+    st.text('All info is read in cache, send to make all maths and give it back, it\'s deleted once you refresh or leave the page!')
+    st.text('Click "LolCNFT" below to head to the website and contact me!')
     st.header('General Graphs')
     st.subheader('Volume by Categories')
     st.write('This pie chart show how much % you moved over the selected period of time. This categories are taken '
@@ -24,3 +27,4 @@ def info():
     st.write('This histogram shows you how much volume you moved in all the wallet\'s life!')
     st.markdown('---')
     st.header('Comparative over years')
+    st.write('Soon...')

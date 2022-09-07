@@ -272,6 +272,7 @@ def Stats():
                 with st.container():
                     st.plotly_chart(fig_txs, use_container_width=True)
                 st.subheader('Comparative over years')
+                st.text('Soon...')
 
                 # Comparative
 
