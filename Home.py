@@ -5,7 +5,7 @@ import streamlit as st
 def Home():
 
     st.markdown('---')
-    st.title("Welcome to ProStats.io!")
+    st.title("Welcome!")
     st.markdown('*')
     st.header('NO info is kept or stored!')
     st.text('Want to know more? Head to 📍 Info')
